@@ -30,6 +30,8 @@ int erk = 0;
 
 void setup()  
 {
+  pinMode(9, OUTPUT);
+  pinMode(13, INPUT);
   Serial.begin(9600);
   while (!Serial);
   delay(100);
@@ -58,11 +60,22 @@ void loop()  {                   // run over and over again
   getFingerprintIDez();
   Serial.println(getFingerprintIDez());
     if (erk == 1) {
+      Serial.println("COMPUTER AN!");
       analogWrite(POWERPC, VALUEPCV);
       delay(400);
       analogWrite(POWERPC, 0);
       erk = 0;
-    }
+      }
+
+    if (digitalRead(13)){
+      digitalWrite(9,HIGH);
+      delay(1000);
+      digitalWrite(9,LOW);
+      delay(1000);
+      }
+    else {
+      digitalWrite(9,LOW);
+      }
   
   delay(1000); //don't ned to run this at full speed.
   lcd.clear();
