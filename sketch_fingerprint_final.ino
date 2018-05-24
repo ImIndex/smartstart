@@ -413,7 +413,7 @@ void startComputer() {
     erk = 0;
 }
 
-void resetComputer() {
+/*void resetComputer() {
     Serial.println("COMPUTER RESET!");
     analogWrite(POWERPC, VALUEPCV);
     lcd.clear();
@@ -424,6 +424,36 @@ void resetComputer() {
     delay(10000);
     analogWrite(POWERPC, 0);
     erk = 0;
+}*/
+
+void resetComputer() {
+   lcd.clear();
+   lcd.setCursor(0,0);
+   lcd.print("Finger scannen");
+   lcd.setCursor(0,1);
+   lcd.print("zum resetten");
+   getFingerprintIDez();
+   if (erk == 1) {
+     startComputer();
+     Serial.println("COMPUTER RESET!");
+   analogWrite(POWERPC, VALUEPCV);
+   lcd.clear();
+   lcd.setCursor(0,0);
+   lcd.print("Computer wird");
+   lcd.setCursor(0,1);
+   lcd.print("resettet");
+   delay(10000);
+   analogWrite(POWERPC, 0);
+   erk = 0;
+ }
+ else{
+   lcd.clear();
+   lcd.setCursor(0,0);
+   lcd.print("Nicht berechtigt");
+   lcd.setCursor(0,1);
+   lcd.print("zum resettet");
+ }
+ }
 }
 
 void checkFPDatabase() {
