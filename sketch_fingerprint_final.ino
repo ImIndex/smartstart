@@ -21,6 +21,8 @@
 #define NEWRS 13
 #define PCRS 9
 #define POWERON_LED 12
+
+//sonstige Definitionen
 #define MASTER_ID 1
 
 // Objekte werden initialisiert
@@ -30,7 +32,19 @@ Adafruit_Fingerprint finger = Adafruit_Fingerprint(&mySerial);
 
 //Variablen initialisierung
 
-int erk = 0;
+uint8_t getid = -1;
+uint8_t id = 0;
+uint8_t erk = 0;
+
+int buttonResetState = 0;
+int buttonMenuState = 0;
+
+//millis Definitionen
+
+unsigned long m_time;
+unsigned long passedtime;
+unsigned long interval = 1000;
+
 
 void setup()  
 {
@@ -56,19 +70,35 @@ void setup()
   }
 
   finger.getTemplateCount();
+  id = finger.templateCount;
   Serial.print("Der Sensor enthält "); Serial.print(finger.templateCount); Serial.println(" Vorlagen");
   Serial.println("Es wird auf einen berechtigten Finger gewartet...");
 }
 
-void loop()  {                   // run over and over again 
+void loop()  {        // run over and over again 
+  buttonResetState = digitalRead(PCRS);
+  buttonMenuState = digitalRead(NEWRS);
   lcd.setCursor(0, 0);
   checkFPDatabase();
-  getFingerprintIDez();
+  m_time = millis();
+  passedtime = millis() - m_time;
+  if (m_time - passedtime > interval) {
+      getFingerprintIDez();
   if (erk == 1) {
     startComputer();
       }
-    delay(1000); //don't ned to run this at full speed.
-  lcd.clear();
+   lcd.clear();
+    
+  }
+
+  if (buttonResetState == HIGH) {
+    resetComputer();
+  }
+
+  if (buttonMenuState == HIGH) {
+    getFingerprintEnroll();
+  }
+
 }
 
 uint8_t getFingerprintID() {
@@ -193,25 +223,47 @@ int getFingerprintIDez() {
 uint8_t getFingerprintEnrollMaster() {
 
   int p = -1;
-  Serial.print("Waiting for valid finger to enroll as #"); Serial.println(MASTER_ID);
+  Serial.print("Keinen Fingerabdruck gefunden! Bitte Master-Fingerabdruck einscannen.");
+  lcd.clear();
+  lcd.setCursor(0,0);
+  lcd.print("Kein Finger-");
+  lcd.setCursor(0,1);
+  lcd.print("abdruck gefunden");
+  delay(2000);
+  lcd.clear();
+  lcd.setCursor(0,0);
+  lcd.print("Bitte Master-");
+  lcd.setCursor(0,1);
+  lcd.print("Finger scannen");
+  delay(2000);
+  lcd.clear();
+  
   while (p != FINGERPRINT_OK) {
     p = finger.getImage();
     switch (p) {
-    case FINGERPRINT_OK:
-      Serial.println("Image taken");
-      break;
-    case FINGERPRINT_NOFINGER:
-      Serial.println(".");
-      break;
-    case FINGERPRINT_PACKETRECIEVEERR:
-      Serial.println("Communication error");
-      break;
-    case FINGERPRINT_IMAGEFAIL:
-      Serial.println("Imaging error");
-      break;
-    default:
-      Serial.println("Unknown error");
-      break;
+      case FINGERPRINT_OK:
+        Serial.println("Scan erfasst! :)");
+        lcd.print("Scan erfasst!");
+        delay(2000);        
+        break;
+      case FINGERPRINT_NOFINGER:
+        Serial.println("Kein Finger erkannt!");
+/*        lcd.print("Finger nicht");
+        lcd.setCursor(0, 1);
+        lcd.print("erkannt!");*/
+        return p;
+      case FINGERPRINT_PACKETRECIEVEERR:
+        Serial.println("Verbindungsfehler");
+        lcd.print("Verbindungsfehler");
+        return p;
+      case FINGERPRINT_IMAGEFAIL:
+        Serial.println("Scanfehler");
+        lcd.print("Scanfehler");
+        return p;
+      default:
+        Serial.println("Error 404");
+        lcd.print("Error 404");
+        return p;
     }
   }
 
@@ -220,26 +272,35 @@ uint8_t getFingerprintEnrollMaster() {
   p = finger.image2Tz(1);
   switch (p) {
     case FINGERPRINT_OK:
-      Serial.println("Image converted");
+      Serial.println("Scan umgewandelt");
+      lcd.print("Scan umgewandelt");
       break;
     case FINGERPRINT_IMAGEMESS:
-      Serial.println("Image too messy");
+      Serial.println("Abdruck nicht eindeutig");
+      lcd.print("Abdruck");
+      lcd.setCursor(0, 1);
+      lcd.print("nicht eindeutig");
       return p;
     case FINGERPRINT_PACKETRECIEVEERR:
-      Serial.println("Communication error");
+      Serial.println("Verbindungsfehler");
+      lcd.print("Verbindungsfehler");
       return p;
     case FINGERPRINT_FEATUREFAIL:
-      Serial.println("Could not find fingerprint features");
+      Serial.println("Keine übereinstimmenden Eigenschaften im Fingerabdruck");
       return p;
     case FINGERPRINT_INVALIDIMAGE:
-      Serial.println("Could not find fingerprint features");
+      Serial.println("Keine übereinstimmenden Eigenschaften im Fingerabdruck");
       return p;
     default:
-      Serial.println("Unknown error");
+      Serial.println("Error 404");
+      lcd.print("Error 404");
       return p;
   }
   
   Serial.println("Remove finger");
+  lcd.clear();
+  lcd.setCursor(0,0);
+  lcd.print("Finger entfernen");
   delay(2000);
   p = 0;
   while (p != FINGERPRINT_NOFINGER) {
@@ -247,12 +308,25 @@ uint8_t getFingerprintEnrollMaster() {
   }
   Serial.print("ID "); Serial.println(MASTER_ID);
   p = -1;
-  Serial.println("Place same finger again");
+  Serial.println("Selben Finger wieder auflegen");
+  lcd.clear();
+  lcd.setCursor(0,0);
+  lcd.print("Selben Finger");
+  lcd.setCursor(0,1);
+  lcd.print("erneut auflegen");
+  
   while (p != FINGERPRINT_OK) {
     p = finger.getImage();
     switch (p) {
     case FINGERPRINT_OK:
       Serial.println("Image taken");
+      lcd.clear();
+      lcd.setCursor(0,0);
+      lcd.print("Fingerabdruck");
+      lcd.setCursor(0,1);
+      lcd.print("gescannt!");
+      delay(2000);
+      lcd.clear();
       break;
     case FINGERPRINT_NOFINGER:
       Serial.print(".");
@@ -360,6 +434,176 @@ void checkFPDatabase() {
    
 }
 
+void clearFPDatabase(){
+  lcd.clear();
+  lcd.setCursor(0,0);
+  lcd.print("SmartStart Reset");
+  lcd.setCursor(0,1);
+  lcd.print("M.F. Scan o. NMF");
+  delay(2000);
+  getFingerprintIDez();
+  
+  if (finger.fingerID == MASTER_ID){
+    getid = -1;
+      lcd.clear();
+      lcd.setCursor(0,0);
+      lcd.print("Sind Sie Sicher?");
+      lcd.setCursor(0,1);
+      lcd.print("Master scannen!");
+      getFingerprintIDez();
+  
+        if (finger.fingerID == MASTER_ID){
+            getid = -1;
+            finger.emptyDatabase();
+            lcd.clear();
+            lcd.setCursor(0,0);
+            lcd.print("   SmartStart");
+            lcd.setCursor(0,1);
+            lcd.print("    resettet"); 
+                                }
+                          }
+  
+}
+
+
+uint8_t getFingerprintEnroll() {
+  id = id + 1;
+  int p = -1;
+  Serial.print("Waiting for valid finger to enroll as #"); Serial.println(id);
+  while (p != FINGERPRINT_OK) {
+    p = finger.getImage();
+    switch (p) {
+    case FINGERPRINT_OK:
+      Serial.println("Image taken");
+      break;
+    case FINGERPRINT_NOFINGER:
+      Serial.println(".");
+      break;
+    case FINGERPRINT_PACKETRECIEVEERR:
+      Serial.println("Communication error");
+      break;
+    case FINGERPRINT_IMAGEFAIL:
+      Serial.println("Imaging error");
+      break;
+    default:
+      Serial.println("Unknown error");
+      break;
+    }
+  }
+
+  // OK success!
+
+  p = finger.image2Tz(1);
+  switch (p) {
+    case FINGERPRINT_OK:
+      Serial.println("Image converted");
+      break;
+    case FINGERPRINT_IMAGEMESS:
+      Serial.println("Image too messy");
+      return p;
+    case FINGERPRINT_PACKETRECIEVEERR:
+      Serial.println("Communication error");
+      return p;
+    case FINGERPRINT_FEATUREFAIL:
+      Serial.println("Could not find fingerprint features");
+      return p;
+    case FINGERPRINT_INVALIDIMAGE:
+      Serial.println("Could not find fingerprint features");
+      return p;
+    default:
+      Serial.println("Unknown error");
+      return p;
+  }
+  
+  Serial.println("Remove finger");
+  delay(2000);
+  p = 0;
+  while (p != FINGERPRINT_NOFINGER) {
+    p = finger.getImage();
+  }
+  Serial.print("ID "); Serial.println(id);
+  p = -1;
+  Serial.println("Place same finger again");
+  while (p != FINGERPRINT_OK) {
+    p = finger.getImage();
+    switch (p) {
+    case FINGERPRINT_OK:
+      Serial.println("Image taken");
+      break;
+    case FINGERPRINT_NOFINGER:
+      Serial.print(".");
+      break;
+    case FINGERPRINT_PACKETRECIEVEERR:
+      Serial.println("Communication error");
+      break;
+    case FINGERPRINT_IMAGEFAIL:
+      Serial.println("Imaging error");
+      break;
+    default:
+      Serial.println("Unknown error");
+      break;
+    }
+  }
+
+  // OK success!
+
+  p = finger.image2Tz(2);
+  switch (p) {
+    case FINGERPRINT_OK:
+      Serial.println("Image converted");
+      break;
+    case FINGERPRINT_IMAGEMESS:
+      Serial.println("Image too messy");
+      return p;
+    case FINGERPRINT_PACKETRECIEVEERR:
+      Serial.println("Communication error");
+      return p;
+    case FINGERPRINT_FEATUREFAIL:
+      Serial.println("Could not find fingerprint features");
+      return p;
+    case FINGERPRINT_INVALIDIMAGE:
+      Serial.println("Could not find fingerprint features");
+      return p;
+    default:
+      Serial.println("Unknown error");
+      return p;
+  }
+  
+  // OK converted!
+  Serial.print("Creating model for #");  Serial.println(id);
+  
+  p = finger.createModel();
+  if (p == FINGERPRINT_OK) {
+    Serial.println("Prints matched!");
+  } else if (p == FINGERPRINT_PACKETRECIEVEERR) {
+    Serial.println("Communication error");
+    return p;
+  } else if (p == FINGERPRINT_ENROLLMISMATCH) {
+    Serial.println("Fingerprints did not match");
+    return p;
+  } else {
+    Serial.println("Unknown error");
+    return p;
+  }   
+  
+  Serial.print("ID "); Serial.println(id);
+  p = finger.storeModel(id);
+  if (p == FINGERPRINT_OK) {
+    Serial.println("Stored!");
+  } else if (p == FINGERPRINT_PACKETRECIEVEERR) {
+    Serial.println("Communication error");
+    return p;
+  } else if (p == FINGERPRINT_BADLOCATION) {
+    Serial.println("Could not store in that location");
+    return p;
+  } else if (p == FINGERPRINT_FLASHERR) {
+    Serial.println("Error writing to flash");
+    return p;
+  } else {
+    Serial.println("Unknown error");
+    return p;
+  }   
+}
 
 
 
