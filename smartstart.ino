@@ -36,8 +36,11 @@ uint8_t getid = -1;
 uint8_t id = 0;
 uint8_t erk = 0;
 
+int buttonResetPushCounter = 0;
 int buttonResetState = 0;
+int lastButtonResetState = LOW;
 int buttonMenuState = 0;
+int lastButtonMenuState = LOW;
 
 //millis Definitionen
 
@@ -82,6 +85,13 @@ void loop()  {        // run over and over again
   checkFPDatabase();
   m_time = millis();
   passedtime = millis() - m_time;
+  
+  if( digitalRead(PCRS) && digitalRead(NEWRS) == HIGH) {
+   clearFPDatabase();
+   Serial.println("Two Button Push");
+   delay(3000);
+   }
+  
   if (m_time - passedtime > interval) {
       getFingerprintIDez();
   if (erk == 1) {
@@ -90,16 +100,30 @@ void loop()  {        // run over and over again
    lcd.clear();
     
   }
-
-  if (buttonResetState == HIGH) {
-    resetComputer();
+  if (m_time - passedtime > interval) {
+    if (buttonResetState != lastButtonResetState) {
+      if (buttonResetState == HIGH) {
+        resetComputer();
   }
-
-  if (buttonMenuState == HIGH) {
-    getFingerprintEnroll();
+      delay(50);
+    
   }
+  }
+  lastButtonResetState = buttonResetState;
+  
+  if (m_time - passedtime > interval) {
+    if (buttonMenuState != lastButtonMenuState) {
+      if (buttonMenuState == HIGH) {
+       newid();
+       erk = 0;
+      }
+       delay(50);
+  }
+  }
+  lastButtonMenuState = buttonMenuState;
+ }
 
-}
+
 
 uint8_t getFingerprintID() {
   uint8_t p = finger.getImage();
@@ -221,7 +245,7 @@ int getFingerprintIDez() {
 }
 
 uint8_t getFingerprintEnrollMaster() {
-
+  delay(1500);
   int p = -1;
   Serial.print("Keinen Fingerabdruck gefunden! Bitte Master-Fingerabdruck einscannen.");
   lcd.clear();
@@ -407,6 +431,8 @@ uint8_t getFingerprintEnrollMaster() {
 
 void startComputer() {
     Serial.println("COMPUTER AN!");
+    lcd.setCursor(0,1);
+    lcd.print("PC gestartet");
     analogWrite(POWERPC, VALUEPCV);
     delay(400);
     analogWrite(POWERPC, 0);
@@ -427,33 +453,37 @@ void startComputer() {
 }*/
 
 void resetComputer() {
+   //buttonResetState = LOW;
    lcd.clear();
    lcd.setCursor(0,0);
    lcd.print("Finger scannen");
    lcd.setCursor(0,1);
    lcd.print("zum resetten");
-   getFingerprintIDez();
-   if (erk == 1) {
-     startComputer();
-     Serial.println("COMPUTER RESET!");
-   analogWrite(POWERPC, VALUEPCV);
-   lcd.clear();
-   lcd.setCursor(0,0);
-   lcd.print("Computer wird");
-   lcd.setCursor(0,1);
-   lcd.print("resettet");
-   delay(10000);
-   analogWrite(POWERPC, 0);
-   erk = 0;
+   Serial.println(erk);
+   delay(1000);
+   while (erk == 0) {
+     getFingerprintIDez();
+
+     buttonResetState = digitalRead(PCRS);
+
+     if (buttonResetState == HIGH) {
+      Serial.println("If Funktion ausgeführt");
+      return -1;
+     }
+     if (erk == 1) {
+       Serial.println("COMPUTER RESET!");
+       analogWrite(POWERPC, VALUEPCV);
+       lcd.clear();
+       lcd.setCursor(0,0);
+       lcd.print("Computer wird");
+       lcd.setCursor(0,1);
+       lcd.print("resettet");
+       delay(10000);
+       analogWrite(POWERPC, 0);
+       erk = 0;
  }
- else{
-   lcd.clear();
-   lcd.setCursor(0,0);
-   lcd.print("Nicht berechtigt");
-   lcd.setCursor(0,1);
-   lcd.print("zum resettet");
- }
- }
+   }
+
 }
 
 void checkFPDatabase() {
@@ -471,33 +501,61 @@ void clearFPDatabase(){
   lcd.setCursor(0,1);
   lcd.print("M.F. Scan o. NMF");
   delay(2000);
-  getFingerprintIDez();
-  
-  if (finger.fingerID == MASTER_ID){
-    getid = -1;
+  uint8_t  t_id = 0;
+  while (t_id != 1) {
+    getFingerprintIDez();
+
+    buttonMenuState = digitalRead(NEWRS);
+
+    if (buttonMenuState == HIGH) {
+      return -1;
+    }
+
+    t_id = finger.fingerID;
+
+    if (t_id == 1) {
+      finger.emptyDatabase();
       lcd.clear();
       lcd.setCursor(0,0);
-      lcd.print("Sind Sie Sicher?");
+      lcd.print("   SmartStart");
       lcd.setCursor(0,1);
-      lcd.print("Master scannen!");
-      getFingerprintIDez();
-  
-        if (finger.fingerID == MASTER_ID){
-            getid = -1;
-            finger.emptyDatabase();
-            lcd.clear();
-            lcd.setCursor(0,0);
-            lcd.print("   SmartStart");
-            lcd.setCursor(0,1);
-            lcd.print("    resettet"); 
-                                }
-                          }
+      lcd.print("    resettet"); 
+      delay(1000);
+    }
+}
   
 }
 
+void newid(){
+  delay(1000);
+  uint8_t  t_id = 0;
+  while (t_id != 1) {
+    getFingerprintIDez();
+
+    buttonMenuState = digitalRead(NEWRS);
+    buttonResetState = digitalRead(PCRS);
+
+    if (buttonMenuState == HIGH) {
+      return -1;
+    }
+
+    if (buttonResetState == HIGH) {
+      clearFPDatabase();
+      return -1;
+    }
+
+    t_id = finger.fingerID;
+
+    if (erk == 1) {
+      delay(4000);
+      getFingerprintEnroll();
+      
+    }
+}
+}
 
 uint8_t getFingerprintEnroll() {
-  id = id + 1;
+  id = finger.templateCount+1;
   int p = -1;
   Serial.print("Waiting for valid finger to enroll as #"); Serial.println(id);
   while (p != FINGERPRINT_OK) {
@@ -634,6 +692,3 @@ uint8_t getFingerprintEnroll() {
     return p;
   }   
 }
-
-
-
