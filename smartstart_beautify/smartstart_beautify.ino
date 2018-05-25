@@ -118,6 +118,14 @@ void loop() {
         }
     }
     lastButtonMenuState = buttonMenuState;
+
+    if (m_time - passedtime > interval) {
+      if (digitalRead(POWERON_LED)) {
+        lcd.clear();
+        lcd.setCursor(0, 0);
+        lcd.print("==== RUNNING ====");
+      }
+    }
 }
 
 uint8_t getFingerprintID() {
@@ -125,16 +133,22 @@ uint8_t getFingerprintID() {
     switch (p) {
     case FINGERPRINT_OK:
         Serial.println("Scan erfasst! :)");
+        lcd.clear();
+        lcd.setCursor(0, 0);
         lcd.print("Scan erfasst! :)");
         break;
     case FINGERPRINT_NOFINGER:
         Serial.println("Kein Finger erkannt!");
+        lcd.clear();
+        lcd.setCursor(0, 0);
         lcd.print("Finger nicht");
         lcd.setCursor(0, 1);
         lcd.print("erkannt!");
         return p;
     case FINGERPRINT_PACKETRECIEVEERR:
         Serial.println("Verbindungsfehler");
+        lcd.clear();
+        lcd.setCursor(0, 0);
         lcd.print("Verbindungsfehler");
         return p;
     case FINGERPRINT_IMAGEFAIL:
@@ -153,10 +167,14 @@ uint8_t getFingerprintID() {
     switch (p) {
     case FINGERPRINT_OK:
         Serial.println("Scan umgewandelt");
+        lcd.clear();
+        lcd.setCursor(0, 0);
         lcd.print("Scan umgewandelt");
         break;
     case FINGERPRINT_IMAGEMESS:
         Serial.println("Abdruck nicht eindeutig");
+        lcd.clear();
+        lcd.setCursor(0, 0);
         lcd.print("Abdruck");
         lcd.setCursor(0, 1);
         lcd.print("nicht eindeutig");
@@ -180,6 +198,8 @@ uint8_t getFingerprintID() {
     p = finger.fingerFastSearch();
     if (p == FINGERPRINT_OK) {
         Serial.println("Fingerabdruck erkannt!");
+        lcd.clear();
+        lcd.setCursor(0, 0);
         lcd.print("Abdruck erkannt!");
     } else if (p == FINGERPRINT_PACKETRECIEVEERR) {
         Serial.println("Übertragungsfehler");
@@ -187,6 +207,8 @@ uint8_t getFingerprintID() {
         return p;
     } else if (p == FINGERPRINT_NOTFOUND) {
         Serial.println("Kein Finger erkannt");
+        lcd.clear();
+        lcd.setCursor(0, 0);
         lcd.print("Kein Finger");
         lcd.setCursor(0, 1);
         lcd.print("erkannt!");
@@ -201,6 +223,8 @@ uint8_t getFingerprintID() {
     Serial.print("Erkannte ID #");
     Serial.print(finger.fingerID);
     Serial.print("\n");
+    lcd.clear();
+    lcd.setCursor(0, 0);
     lcd.print("Erkannte ID: #");
     lcd.print(finger.fingerID);
     erk = 1;
@@ -222,6 +246,8 @@ int getFingerprintIDez() {
     p = finger.fingerFastSearch();
     if (p != FINGERPRINT_OK) {
         Serial.print("Fingerabdruck nicht erkannt! Bitte Finger entfernen und erneut auflegen.\n");
+        lcd.clear();
+        lcd.setCursor(0, 0);
         lcd.print("Finger nicht");
         lcd.setCursor(0, 1);
         lcd.print("erkannt!");
@@ -237,6 +263,8 @@ int getFingerprintIDez() {
     Serial.print("Erkannte ID #");
     Serial.print(finger.fingerID);
     Serial.print("\n");
+    lcd.clear();
+    lcd.setCursor(0, 0);
     lcd.print("Erkannte ID: #");
     lcd.print(finger.fingerID);
     erk = 1;
@@ -303,6 +331,8 @@ uint8_t getFingerprintEnrollMaster() {
         break;
     case FINGERPRINT_IMAGEMESS:
         Serial.println("Abdruck nicht eindeutig");
+        lcd.clear();
+        lcd.setCursor(0, 0);
         lcd.print("Abdruck");
         lcd.setCursor(0, 1);
         lcd.print("nicht eindeutig");

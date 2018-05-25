@@ -57,8 +57,6 @@ void setup()
   Serial.begin(9600);
   while (!Serial);
   delay(100);
-  Serial.println("start");
-  Serial.println("\n\nAdafruit Fingerscanner Test");
 
   // Setzten der Display Größe (Reihen und Zeilen)
      lcd.begin(LCD_COLUMNS, LCD_ROWS);
