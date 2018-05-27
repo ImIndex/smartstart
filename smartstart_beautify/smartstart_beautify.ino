@@ -1,3 +1,11 @@
+/*
+Programmiert von Manuel Brausch und Giona Mendicino
+basierend auf C++,Arduino, Adafruit_Fingerprint
+27.05.2018
+v.beta 0.9
+*/
+
+
 #include "Arduino.h"
 #include "LiquidCrystal.h"
 #include <Adafruit_Fingerprint.h> #include <SoftwareSerial.h>
@@ -90,11 +98,20 @@ void loop() {
     }
 
     if (m_time - passedtime > interval) {
-        getFingerprintIDez();
-        if (erk == 1) {
-            startComputer();
-        }
-        lcd.clear();
+
+	if (digitalRead(POWERON_LED)) {
+      		lcd.clear();
+        	lcd.setCursor(0, 0);
+        	lcd.print("==== RUNNING ====");
+      }
+	else{
+       		getFingerprintIDez();
+        	if (erk == 1) {
+            	startComputer();
+        		}
+        	lcd.clear();
+	}
+    }
 
     }
     if (m_time - passedtime > interval) {
@@ -119,13 +136,7 @@ void loop() {
     }
     lastButtonMenuState = buttonMenuState;
 
-    if (m_time - passedtime > interval) {
-      if (digitalRead(POWERON_LED)) {
-        lcd.clear();
-        lcd.setCursor(0, 0);
-        lcd.print("==== RUNNING ====");
-      }
-    }
+  
 }
 
 uint8_t getFingerprintID() {
